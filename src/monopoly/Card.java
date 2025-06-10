@@ -1,12 +1,16 @@
 // File: Card.java
 package monopoly;
 
+/**
+ * Card object for Chance and Community Chest decks.
+ * Decks are stored in CardLinkedList structures (head-only, no tail).
+ */
 public class Card {
-    public String text;      // full description
-    public String type;      // "Chance" or "Community Chest"
 
-    /* ------------------ Card text arrays ------------------ */
+    public String text;   // full description
+    public String type;   // "Chance" or "Community Chest"
 
+    /* ----- Raw text arrays (16 each) ----- */
     private static final String[] CHANCE_TEXTS = {
         "Advance to Boardwalk.",
         "Advance to Go (Collect $200).",
@@ -45,51 +49,40 @@ public class Card {
         "You inherit $100"
     };
 
-    /* ------------------ Static decks & indices ------------------ */
+    /* ----- Linked-list decks ----- */
+    private static final CardLinkedList chanceDeck = new CardLinkedList();
+    private static final CardLinkedList chestDeck  = new CardLinkedList();
 
-    public static final Card[] chanceDeck;
-    public static final Card[] chestDeck;
-    private static int chanceIdx = 0;
-    private static int chestIdx  = 0;
-
+    /* ----- Static initializer: build + shuffle once ----- */
     static {
-        chanceDeck = new Card[CHANCE_TEXTS.length];
-        chestDeck  = new Card[CHEST_TEXTS.length];
-
-        for (int i = 0; i < CHANCE_TEXTS.length; i++)
-            chanceDeck[i] = new Card(CHANCE_TEXTS[i], "Chance");
-
-        for (int i = 0; i < CHEST_TEXTS.length; i++)
-            chestDeck[i]  = new Card(CHEST_TEXTS[i], "Community Chest");
-
-        shuffle(chanceDeck);
-        shuffle(chestDeck);
-    }
-
-    /* ------------------ Constructors ------------------ */
-
-    private Card(String text, String type) { this.text = text; this.type = type; }
-    public  Card(String text)              { this(text, ""); }
-
-    /* ------------------ Draw helpers ------------------ */
-    public static Card drawChance() {
-        Card c = chanceDeck[chanceIdx++];
-        if (chanceIdx >= chanceDeck.length) chanceIdx = 0;
-        return c;
-    }
-    public static Card drawChest() {
-        Card c = chestDeck[chestIdx++];
-        if (chestIdx >= chestDeck.length) chestIdx = 0;
-        return c;
-    }
-
-    /* ------------------ Shuffle ------------------ */
-    private static void shuffle(Card[] deck) {
-        for (int i = deck.length - 1; i > 0; i--) {
-            int j = (int)(Math.random() * (i + 1));
-            Card tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+        for (int i = 0; i < CHANCE_TEXTS.length; i++) {
+            chanceDeck.insert(new Card(CHANCE_TEXTS[i], "Chance"));
         }
+        for (int i = 0; i < CHEST_TEXTS.length; i++) {
+            chestDeck.insert(new Card(CHEST_TEXTS[i], "Community Chest"));
+        }
+        chanceDeck.shuffle();
+        chestDeck.shuffle();
     }
+
+    /* ----- Constructors ----- */
+    private Card(String txt, String tp) {
+        text = txt;
+        type = tp;
+    }
+
+    // Public fallback (rarely needed)
+    public Card(String txt) {
+        this(txt, "");
+    }
+
+    /* ----- Draw helpers ----- */
+    public static Card drawChance() { return chanceDeck.draw(); }
+    public static Card drawChest()  { return chestDeck.draw(); }
+
+    /* ----- Apply effect (stub) ----- */
+    
+
 
     /* ------------------ Effects ------------------ */
     public void applyEffect(Participant p, GameController ctrl) {

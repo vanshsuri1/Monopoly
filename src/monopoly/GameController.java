@@ -4,123 +4,275 @@ package monopoly;
 import java.util.Scanner;
 
 public class GameController {
+
+    /* ---------- Singleton references (used by SaveLoadManager) ---------- */
+    private static GameController instance;
+    private static MapManager     boardRef;
+
+    /* ---------- Managers ---------- */
     private MapManager     mapManager;
     private BuyingManager  buyingManager;
     private AuctionManager auctionManager;
     private TradeManager   tradeManager;
-    private Participant[]  players;
-    private Scanner        input = new Scanner(System.in);
+    private SaveLoadManager saveLoad;
 
-    public static void main(String[] args) {
+    /* ---------- Players ---------- */
+    private Participant[] players;
+
+    /* ---------- Console ---------- */
+    private Scanner input = new Scanner(System.in);
+
+    /* ---------- Main entry ---------- */
+    public static void main(String[] args)
+    {
         new GameController().start();
     }
 
-    /** Entry point: build managers, read player names, then enter gameLoop */
-    public void start() {
-        mapManager     = new MapManager();
-        buyingManager  = new BuyingManager();
-        auctionManager = new AuctionManager();
-        tradeManager   = new TradeManager();
+    /* ---------- Accessors for other classes ---------- */
+    public static MapManager getBoard()
+    {
+        return boardRef;
+    }
 
+    public MapManager getMapManager()
+    {
+        return mapManager;
+    }
+
+    public BuyingManager getBuyingManager()
+    {
+        return buyingManager;
+    }
+
+    public Participant[] getPlayers()
+    {
+        return players;
+    }
+
+    /* ---------- Game start ---------- */
+    public void start()
+    {
+        instance         = this;                 // record singleton
+        mapManager       = new MapManager();
+        boardRef         = mapManager;
+
+        buyingManager    = new BuyingManager();
+        auctionManager   = new AuctionManager();
+        tradeManager     = new TradeManager();
+        saveLoad         = new SaveLoadManager();
+
+        /* -------- read players -------- */
         System.out.print("Enter number of players (2-4): ");
         int n = Integer.parseInt(input.nextLine());
+
         players = new Participant[n];
-        for (int i = 0; i < n; i++) {
-            System.out.print("Enter name for Player " + (i+1) + ": ");
+
+        for (int i = 0; i < n; i++)
+        {
+            System.out.print("Name for Player " + (i + 1) + ": ");
             players[i] = new Participant(input.nextLine());
+        }
+
+        /* -------- optional load -------- */
+        System.out.print("Load previous game? (y / n): ");
+        if (input.nextLine().equalsIgnoreCase("y"))
+        {
+            try
+            {
+                GameState gs = saveLoad.load();
+                players = gs.players;
+            }
+            catch (Exception e)
+            {
+                System.out.println("No save file found. Starting new game.");
+            }
         }
 
         gameLoop();
     }
 
-    /** Main turn-by-turn game loop */
-    private void gameLoop() {
+    /* ---------- Main game loop ---------- */
+    private void gameLoop()
+    {
         boolean gameOver = false;
 
-        while (!gameOver) {
-            for (int i = 0; i < players.length; i++) {
+        while (!gameOver)
+        {
+            /* ===== Each player’s turn ===== */
+            for (int i = 0; i < players.length; i++)
+            {
                 Participant p = players[i];
+
                 if (p.bankrupt) continue;
 
-                // show board
+                /* ------- Optional build menu before rolling ------- */
+                System.out.print(
+                        p.getName() +
+                        " – build on a property before rolling (y / n)? "
+                );
+
+                if (input.nextLine().equalsIgnoreCase("y"))
+                {
+                    listBuildOptions(p);
+                    System.out.print(
+                            "Enter board location to build (-1 to cancel): "
+                    );
+
+                    int loc = Integer.parseInt(input.nextLine());
+
+                    if (loc >= 0)
+                    {
+                        attemptBuild(p, loc);
+                    }
+                }
+
+                /* ------- Render board ------- */
                 mapManager.render(players);
 
-                // roll
-                System.out.println(p.getName() + "'s turn. [Enter] to roll");
+                /* ------- Roll dice ------- */
+                System.out.println(p.getName() + " – press [Enter] to roll");
                 input.nextLine();
-                int roll = DiceRoll.roll();
-                System.out.println(p.getName() + " rolled: " + roll);
 
-                // move & pass GO
+                int roll = DiceRoll.roll();
+                System.out.println(p.getName() + " rolled " + roll);
+
                 p.move(roll);
 
-                // landing
-                int pos = p.position;
-                String label = mapManager.getName(pos);
-                System.out.println(p.getName() +
-                                   " landed on " + label +
-                                   " (space " + pos + ")");
-
-                // defer to Tile.landOn
-                Tile tile = mapManager.getTile(pos);
+                /* ------- Land on tile ------- */
+                Tile tile = mapManager.getTile(p.position);
                 tile.landOn(p, this);
 
-                // check bankrupt
-                if (p.money < 0 || p.getNetWorth() <= 0) {
+                /* ------- Bankruptcy check ------- */
+                if (p.money < 0 || p.getNetWorth() <= 0)
+                {
                     p.bankrupt = true;
                     System.out.println(p.getName() + " is bankrupt!");
                 }
 
-                // status
+                /* ------- Status summary ------- */
                 System.out.println("\n-- Status --");
-                for (int j = 0; j < players.length; j++) {
+                for (int j = 0; j < players.length; j++)
+                {
                     Participant x = players[j];
-                    System.out.printf("%s: Cash=$%d  NW=$%d %s\n",
-                        x.getName(), x.money, x.getNetWorth(),
-                        x.bankrupt ? "(Bankrupt)" : "");
+
+                    System.out.println(
+                            x.getName() +
+                            " cash $" + x.money +
+                            " net $"  + x.getNetWorth() +
+                            (x.bankrupt ? " [BANKRUPT]" : "")
+                    );
                 }
-                System.out.println("----------------\n");
+                System.out.println();
             }
 
-            // after all players have moved, allow a trade round
+            /* ===== Trade phase ===== */
             tradeManager.trade(players);
 
-            // check for single winner
+            /* ===== Auto-save ===== */
+            try
+            {
+                saveLoad.save(new GameState(players));
+                System.out.println("Game auto-saved.");
+            }
+            catch (Exception e)
+            {
+                System.out.println("Auto-save failed.");
+            }
+
+            /* ===== Win check ===== */
             int alive = 0;
             Participant last = null;
-            for (int i = 0; i < players.length; i++) {
-                Participant p = players[i];
-                if (!p.bankrupt) {
-                    alive++;
-                    last = p;
+
+            for (int i = 0; i < players.length; i++)
+            {
+                if (!players[i].bankrupt)
+                {
+                    alive = alive + 1;
+                    last  = players[i];
                 }
             }
 
-            if (alive <= 1) {
+            if (alive <= 1)
+            {
                 gameOver = true;
-                if (last != null) {
-                    System.out.println(last.getName() + " wins!");
+
+                if (last != null)
+                {
+                    System.out.println(last.getName() + " wins the game!");
                 }
             }
         }
     }
 
-    // ---------------------------------------------------
-    // Getter methods required by Tile.landOn(...):
-    // ---------------------------------------------------
+    /* ---------- Helper: list buildable properties ---------- */
+    private void listBuildOptions(Participant p)
+    {
+        System.out.println("\nBuild-eligible properties:");
 
-    /** Expose the MapManager to Tile.landOn */
-    public MapManager getMapManager() {
-        return mapManager;
+        for (int loc = 0; loc < 40; loc++)
+        {
+            Property pr =
+                p.core.getOwnedProperties().searchByLocation(loc);
+
+            if (pr != null &&
+                pr.getType().equals("property") &&
+                !pr.isMortgaged() &&
+                new BuyingManager().ownsColourSet(p, pr))
+            {
+                System.out.println(
+                        loc + " : " + pr.getName() +
+                        "  cost $" + pr.getHouseCost() +
+                        "  houses " + pr.getHouseCost()
+                );
+            }
+        }
     }
 
-    /** Expose the BuyingManager to Tile.landOn */
-    public BuyingManager getBuyingManager() {
-        return buyingManager;
-    }
+    /* ---------- Helper: attempt to build ---------- */
+    private void attemptBuild(Participant p, int loc)
+    {
+        Property prop =
+            p.core.getOwnedProperties().searchByLocation(loc);
 
-    /** Expose the player array to Tile.landOn (and others) */
-    public Participant[] getPlayers() {
-        return players;
+        if (prop == null)
+        {
+            System.out.println("You don’t own a property at " + loc);
+            return;
+        }
+
+        if (prop.isMortgaged())
+        {
+            System.out.println("Property is mortgaged.");
+            return;
+        }
+
+        if (!new BuyingManager().ownsColourSet(p, prop))
+        {
+            System.out.println("You do not own the full set.");
+            return;
+        }
+
+        int cost = prop.getHouseCost();
+
+        if (p.money < cost)
+        {
+            System.out.println("Not enough cash.");
+            return;
+        }
+
+        boolean ok = prop.buildHouse();
+
+        if (ok)
+        {
+            p.money = p.money - cost;
+            System.out.println(
+                    "Built on " + prop.getName() +
+                    ". New rent $" + prop.getRent()
+            );
+        }
+        else
+        {
+            System.out.println("Cannot build further on that property.");
+        }
     }
 }
