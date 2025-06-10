@@ -24,7 +24,7 @@ public class MapManager {
         // Populate ownable spaces exactly at these indices:
 
         // Brown
-        spaces[1]  = new Property(1,  "Mediterranean Avenue","property",  60,  2);
+        spaces[1]  = new Property(1,  "Mediterranean Avenue","property",  60,   2);
         spaces[3]  = new Property(3,  "Baltic Avenue",        "property",  60,  4);
         // Light Blue
         spaces[6]  = new Property(6,  "Oriental Avenue",      "property", 100,  6);
