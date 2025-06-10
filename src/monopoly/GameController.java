@@ -38,7 +38,8 @@ public class GameController {
         boolean gameOver = false;
 
         while (!gameOver) {
-            for (Participant p : players) {
+            for (int i = 0; i < players.length; i++) {
+                Participant p = players[i];
                 if (p.bankrupt) continue;
 
                 // show board
@@ -72,7 +73,8 @@ public class GameController {
 
                 // status
                 System.out.println("\n-- Status --");
-                for (Participant x : players) {
+                for (int j = 0; j < players.length; j++) {
+                    Participant x = players[j];
                     System.out.printf("%s: Cash=$%d  NW=$%d %s\n",
                         x.getName(), x.money, x.getNetWorth(),
                         x.bankrupt ? "(Bankrupt)" : "");
@@ -84,10 +86,16 @@ public class GameController {
             tradeManager.trade(players);
 
             // check for single winner
-            int alive=0; Participant last=null;
-            for (Participant p : players) {
-                if (!p.bankrupt) { alive++; last = p; }
+            int alive = 0;
+            Participant last = null;
+            for (int i = 0; i < players.length; i++) {
+                Participant p = players[i];
+                if (!p.bankrupt) {
+                    alive++;
+                    last = p;
+                }
             }
+
             if (alive <= 1) {
                 gameOver = true;
                 if (last != null) {
