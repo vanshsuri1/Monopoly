@@ -5,15 +5,23 @@ import java.io.*;
 
 public class SaveLoadManager {
 
-	private static final String FILE = "/Users/vanshsuri/Desktop/monopoly_save.txt";
+	private static String FILE;
 
-	/** Save each player to one line of text. */
-	public void save(GameState state) throws IOException {
+	public void setFile(String f) {
+		FILE = f;
+	}
+
+	public void save(Participant[] state) throws IOException {
 		PrintWriter pw = new PrintWriter(new FileWriter(FILE));
 
-		for (Participant p : state.players) {
+		pw.println(state.length); // Prints the number of players on the very first line
+
+		// Save each player to one line of text
+		for (int i = 0; i < state.length; i++) {
+			Participant p = state[i];
 			// Write core stats
-			pw.print(p.getName() + "," + p.money + "," + p.position + "," + p.inJail + "," + p.bankrupt + "|");
+			pw.print(p.getName() + "," + p.money + "," + p.position + "," + p.inJail + "," + p.bankrupt + ","
+					+ p.hasGetOutOfJailCard + "|");
 
 			// Write property locations that player owns
 			String commaSeparated = "";
@@ -34,9 +42,9 @@ public class SaveLoadManager {
 	}
 
 	/** Load game from file and rebuild Player data. */
-	public GameState load() throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(FILE));
-		Participant[] loaded = new Participant[4]; // supports up to 4 players
+	public Participant[] load(String f) throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(f));
+		Participant[] loaded = new Participant[Integer.parseInt(br.readLine())];
 		int count = 0;
 		String line;
 
@@ -52,6 +60,7 @@ public class SaveLoadManager {
 			p.position = Integer.parseInt(stats[2]);
 			p.inJail = Boolean.parseBoolean(stats[3]);
 			p.bankrupt = Boolean.parseBoolean(stats[4]);
+			p.hasGetOutOfJailCard = Boolean.parseBoolean(stats[5]);
 
 			// Re-attach properties
 			if (propPart.length() > 0) {
@@ -75,6 +84,7 @@ public class SaveLoadManager {
 			result[i] = loaded[i];
 		}
 		System.out.println("Game loaded from " + FILE);
-		return new GameState(result);
+		return result;
 	}
+
 }

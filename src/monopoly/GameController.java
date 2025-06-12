@@ -5,29 +5,83 @@ import java.util.Scanner;
 
 public class GameController {
 
-	/* ---------- Singleton references (used by SaveLoadManager) ---------- */
-	private static GameController instance;
+	// Singleton reference (used by SaveLoadManager)
 	private static MapManager boardRef;
 
-	/* ---------- Managers ---------- */
+	// Managers
 	private MapManager mapManager;
 	private BuyingManager buyingManager;
 	private AuctionManager auctionManager;
 	private TradeManager tradeManager;
 	private SaveLoadManager saveLoad;
 
-	/* ---------- Players ---------- */
+	// Players
 	private Participant[] players;
 
-	/* ---------- Console ---------- */
+	// Console
 	private Scanner input = new Scanner(System.in);
 
-	/* ---------- Main entry ---------- */
+	// Main Entry
 	public static void main(String[] args) {
 		new GameController().start();
 	}
 
-	/* ---------- Accessors for other classes ---------- */
+	// To print to Console slower than Default and at a specific speed
+	public static void printSlow(String s) {
+		for (int i = 0; i < s.length(); i++) {
+			System.out.print("" + s.charAt(i));
+			// sleep for a bit after printing a letter
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException m) {
+				;
+			}
+		}
+	}
+
+	// To print to Console slower than Default and at variable speed
+	public static void printSlow(String s, int t) {
+		for (int i = 0; i < s.length(); i++) {
+			System.out.print("" + s.charAt(i));
+			// sleep for a bit after printing a letter
+			try {
+				Thread.sleep(t);
+			} catch (InterruptedException m) {
+				;
+			}
+		}
+	}
+
+	// To print to Console slower than Default and at variable speed with println()
+	public static void printSlowln(String s, int t) {
+		for (int i = 0; i < s.length(); i++) {
+			System.out.print("" + s.charAt(i));
+			// sleep for a bit after printing a letter
+			try {
+				Thread.sleep(t);
+			} catch (InterruptedException m) {
+				;
+			}
+		}
+		System.out.println();
+	}
+
+	// To print to Console slower than Default and at a specific speed with
+	// println()
+	public static void printSlowln(String s) {
+		for (int i = 0; i < s.length(); i++) {
+			System.out.print("" + s.charAt(i));
+			// sleep for a bit after printing a letter
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException m) {
+				;
+			}
+		}
+		System.out.println();
+	}
+
+	// Accessors for other classes
 	public static MapManager getBoard() {
 		return boardRef;
 	}
@@ -44,9 +98,8 @@ public class GameController {
 		return players;
 	}
 
-	/* ---------- Game start ---------- */
+	// Game Start
 	public void start() {
-		instance = this; // record singleton
 		mapManager = new MapManager();
 		boardRef = mapManager;
 
@@ -54,81 +107,94 @@ public class GameController {
 		auctionManager = new AuctionManager();
 		tradeManager = new TradeManager();
 		saveLoad = new SaveLoadManager();
+		String file = null;
 
-		/* -------- read players -------- */
-		System.out.print("Enter number of players (2-4): ");
-		int n = Integer.parseInt(input.nextLine());
-
-		players = new Participant[n];
-
-		for (int i = 0; i < n; i++) {
-			System.out.print("Name for Player " + (i + 1) + ": ");
-			players[i] = new Participant(input.nextLine());
-		}
-
-		/* -------- optional load -------- */
+		// Optional Load Game
 		System.out.print("Load previous game? (y / n): ");
-		if (input.nextLine().equalsIgnoreCase("y")) {
+		if ((input.next().toLowerCase()).equals("y")) {
+			System.out.print("\nEnter the location of the saved game file: ");
+			file = input.next();
 			try {
-				GameState gs = saveLoad.load();
-				players = gs.players;
+				players = saveLoad.load(file);
 			} catch (Exception e) {
-				System.out.println("No save file found. Starting new game.");
+				System.out.println("\nNo save file found. Starting new game.");
 			}
 		}
+
+		if (players == null) {
+			// Read Players from save File
+			System.out.print("\nEnter the Number of Players (2-4): ");
+			int n = input.nextInt();
+
+			while (2 > n || n > 4) {
+				System.out.print("\nEnter the Number of Players (2-4): ");
+				n = input.nextInt();
+			}
+			players = new Participant[n];
+			for (int i = 0; i < n; i++) {
+				printSlow("\nName of Player " + (i + 1) + " (No Spaces): ", 50);
+				players[i] = new Participant(input.next());
+			}
+
+			System.out.print("\nEnter the location of the file to save the game to: ");
+			file = input.next();
+		}
+
+		saveLoad.setFile(file);
 
 		gameLoop();
 	}
 
-	/* ---------- Main game loop ---------- */
+	// Main game loop
 	private void gameLoop() {
 		boolean gameOver = false;
 
 		while (!gameOver) {
-			/* ===== Each player’s turn ===== */
+			// Each player’s turn
 			for (int i = 0; i < players.length; i++) {
 				Participant p = players[i];
 
 				if (p.bankrupt)
 					continue;
 
-				/* ------- Optional build menu before rolling ------- */
+				System.out.println();
+				// Optional build menu before rolling, if a previous game was loaded
 				System.out.print(p.getName() + " – build on a property before rolling (y / n)? ");
-
-				if (input.nextLine().equalsIgnoreCase("y")) {
+				String in = input.next().toLowerCase();
+				if (in.equals("y")) {
 					listBuildOptions(p);
+					System.out.println();
 					System.out.print("Enter board location to build (-1 to cancel): ");
-
-					int loc = Integer.parseInt(input.nextLine());
+					int loc = input.nextInt();
 
 					if (loc >= 0) {
 						attemptBuild(p, loc);
 					}
 				}
 
-				/* ------- Render board ------- */
+				// Render Board
 				mapManager.render(players);
 
-				/* ------- Roll dice ------- */
+				// Roll Dice
 				System.out.println(p.getName() + " – press [Enter] to roll");
-				input.nextLine();
+				input.next();
 
 				int roll = DiceRoll.roll();
 				System.out.println(p.getName() + " rolled " + roll);
 
 				p.move(roll);
 
-				/* ------- Land on tile ------- */
+				// Land on Tile
 				Tile tile = mapManager.getTile(p.position);
 				tile.landOn(p, this);
 
-				/* ------- Bankruptcy check ------- */
+				// Bankruptcy Check
 				if (p.money < 0 || p.getNetWorth() <= 0) {
 					p.bankrupt = true;
 					System.out.println(p.getName() + " is bankrupt!");
 				}
 
-				/* ------- Status summary ------- */
+				// Status Summary
 				System.out.println("\n-- Status --");
 				for (int j = 0; j < players.length; j++) {
 					Participant x = players[j];
@@ -139,18 +205,18 @@ public class GameController {
 				System.out.println();
 			}
 
-			/* ===== Trade phase ===== */
+			// Trade Phase
 			tradeManager.trade(players);
 
-			/* ===== Auto-save ===== */
+			// Auto Save
 			try {
-				saveLoad.save(new GameState(players));
+				saveLoad.save(players);
 				System.out.println("Game auto-saved.");
 			} catch (Exception e) {
 				System.out.println("Auto-save failed.");
 			}
 
-			/* ===== Win check ===== */
+			// Win Check
 			int alive = 0;
 			Participant last = null;
 
@@ -171,7 +237,7 @@ public class GameController {
 		}
 	}
 
-	/* ---------- Helper: list buildable properties ---------- */
+	// Helper: list buildable properties
 	private void listBuildOptions(Participant p) {
 		System.out.println("\nBuild-eligible properties:");
 
@@ -186,7 +252,7 @@ public class GameController {
 		}
 	}
 
-	/* ---------- Helper: attempt to build ---------- */
+	// Helper: Attempt to Build
 	private void attemptBuild(Participant p, int loc) {
 		Property prop = p.core.getOwnedProperties().searchByLocation(loc);
 

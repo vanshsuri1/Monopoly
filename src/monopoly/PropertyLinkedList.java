@@ -10,6 +10,17 @@ class PropertyLinkedList {
 		head = null;
 	}
 
+	// Node for linked list of properties
+	class PropertyNode {
+		public Property property;
+		public PropertyNode next;
+
+		public PropertyNode(Property p) {
+			property = p;
+			next = null;
+		}
+	}
+
 	// Insert a property at the end of the linked list
 	public void insert(Property p) {
 		// Create a new node with the property

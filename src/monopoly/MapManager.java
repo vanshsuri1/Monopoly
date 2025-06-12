@@ -115,10 +115,10 @@ public class MapManager {
 	// Helper: prints "[XXI] " where XX=LABELS[idx], I=player initial or space
 	private void printSlot(int idx, String[] lbl, Participant[] players) {
 		char mark = ' ';
-		for (Participant p : players) {
+		for (int i = 0; i < players.length; i++) {
+			Participant p = players[i];
 			if (!p.bankrupt && p.position == idx) {
 				mark = p.getName().charAt(0);
-				break;
 			}
 		}
 		System.out.print("[" + lbl[idx] + mark + "] ");

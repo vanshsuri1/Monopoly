@@ -1,7 +1,7 @@
-// File: Participant.java
+
 package monopoly;
 
-/**
+/*
  * A thin wrapper that adds cash, board position, jail flags, and helper methods
  * around your original linked-list–based Player class.
  */

@@ -14,6 +14,17 @@ class CardLinkedList {
 		head = null;
 	}
 
+	/** Node for a singly linked list of Card objects. */
+	class CardNode {
+		public Card card;
+		public CardNode next;
+
+		public CardNode(Card c) {
+			card = c;
+			next = null;
+		}
+	}
+
 	/** Insert at end (walk until null, like PropertyLinkedList). */
 	public void insert(Card c) {
 		CardNode n = new CardNode(c);
