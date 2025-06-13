@@ -2,7 +2,7 @@
 package monopoly;
 
 public class MapManager {
-	// 1) Full space names (40 entries)
+	// Full space names (40 entries)
 	private String[] names = new String[] { "Go", "Mediterranean Avenue", "Community Chest", "Baltic Avenue",
 			"Income Tax", "Reading Railroad", "Oriental Avenue", "Chance", "Vermont Avenue", "Connecticut Avenue",
 			"Just Visiting", "St. Charles Place", "Electric Company", "States Avenue", "Virginia Avenue",
@@ -12,11 +12,14 @@ public class MapManager {
 			"North Carolina Avenue", "Community Chest", "Pennsylvania Railroad", "Short Line Railroad", "Chance",
 			"Park Place", "Luxury Tax", "Boardwalk" };
 
-	// 2) Parallel array of Property objects (null where no property)
+	// Parallel array of Property objects (null where no property)
 	private Property[] spaces = new Property[40];
 
-	// 3) Tiles for calling landOn(...)
+	// Tiles for calling landOn(...)
 	private Tile[] tiles = new Tile[40];
+
+	// Cool Printer
+	PrintSlow ps = new PrintSlow();
 
 	public MapManager() {
 		// Populate ownable spaces exactly at these indices:
@@ -121,6 +124,6 @@ public class MapManager {
 				mark = p.getName().charAt(0);
 			}
 		}
-		System.out.print("[" + lbl[idx] + mark + "] ");
+		ps.printSlow("[" + lbl[idx] + mark + "] ", 10);
 	}
 }

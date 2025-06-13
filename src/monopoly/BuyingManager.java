@@ -70,7 +70,7 @@ public class BuyingManager {
 	 * Very simple colour-set test: same first 3 letters, player owns ≥2. Made
 	 * public static so GameController can call it.
 	 */
-	public static boolean ownsColourSet(Participant p, Property prop) {
+	public boolean ownsColourSet(Participant p, Property prop) {
 		String key = prop.getName();
 		if (key.length() > 3) {
 			key = key.substring(0, 3);

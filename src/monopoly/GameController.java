@@ -15,70 +15,18 @@ public class GameController {
 	private TradeManager tradeManager;
 	private SaveLoadManager saveLoad;
 
+	// Cool Printer
+	PrintSlow ps = new PrintSlow();
+	
 	// Players
 	private Participant[] players;
 
-	// Console
+	// Scanner
 	private Scanner input = new Scanner(System.in);
 
 	// Main Entry
 	public static void main(String[] args) {
 		new GameController().start();
-	}
-
-	// To print to Console slower than Default and at a specific speed
-	public static void printSlow(String s) {
-		for (int i = 0; i < s.length(); i++) {
-			System.out.print("" + s.charAt(i));
-			// sleep for a bit after printing a letter
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException m) {
-				;
-			}
-		}
-	}
-
-	// To print to Console slower than Default and at variable speed
-	public static void printSlow(String s, int t) {
-		for (int i = 0; i < s.length(); i++) {
-			System.out.print("" + s.charAt(i));
-			// sleep for a bit after printing a letter
-			try {
-				Thread.sleep(t);
-			} catch (InterruptedException m) {
-				;
-			}
-		}
-	}
-
-	// To print to Console slower than Default and at variable speed with println()
-	public static void printSlowln(String s, int t) {
-		for (int i = 0; i < s.length(); i++) {
-			System.out.print("" + s.charAt(i));
-			// sleep for a bit after printing a letter
-			try {
-				Thread.sleep(t);
-			} catch (InterruptedException m) {
-				;
-			}
-		}
-		System.out.println();
-	}
-
-	// To print to Console slower than Default and at a specific speed with
-	// println()
-	public static void printSlowln(String s) {
-		for (int i = 0; i < s.length(); i++) {
-			System.out.print("" + s.charAt(i));
-			// sleep for a bit after printing a letter
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException m) {
-				;
-			}
-		}
-		System.out.println();
 	}
 
 	// Accessors for other classes
@@ -127,16 +75,16 @@ public class GameController {
 			int n = input.nextInt();
 
 			while (2 > n || n > 4) {
-				System.out.print("\nEnter the Number of Players (2-4): ");
+				System.out.print("\nInvalid Number of Players. Enter again (2-4): ");
 				n = input.nextInt();
 			}
 			players = new Participant[n];
 			for (int i = 0; i < n; i++) {
-				printSlow("\nName of Player " + (i + 1) + " (No Spaces): ", 50);
+				ps.printSlow("\nName of Player " + (i + 1) + " (No Spaces): ", 30);
 				players[i] = new Participant(input.next());
 			}
 
-			System.out.print("\nEnter the location of the file to save the game to: ");
+			ps.printSlow("\nEnter the location of the file to save the game to: ", 30);
 			file = input.next();
 		}
 
@@ -148,7 +96,6 @@ public class GameController {
 	// Main game loop
 	private void gameLoop() {
 		boolean gameOver = false;
-
 		while (!gameOver) {
 			// Each player’s turn
 			for (int i = 0; i < players.length; i++) {
@@ -159,12 +106,12 @@ public class GameController {
 
 				System.out.println();
 				// Optional build menu before rolling, if a previous game was loaded
-				System.out.print(p.getName() + " – build on a property before rolling (y / n)? ");
+				ps.printSlow(p.getName() + " – build on a property before rolling (y / n)? ", 30);
 				String in = input.next().toLowerCase();
 				if (in.equals("y")) {
 					listBuildOptions(p);
 					System.out.println();
-					System.out.print("Enter board location to build (-1 to cancel): ");
+					ps.printSlow("Enter board location to build (-1 to cancel): ", 30);
 					int loc = input.nextInt();
 
 					if (loc >= 0) {
@@ -176,33 +123,47 @@ public class GameController {
 				mapManager.render(players);
 
 				// Roll Dice
-				System.out.println(p.getName() + " – press [Enter] to roll");
-				input.next();
+				ps.printSlow(p.getName() + " – Rolling Dices", 75);
+				ps.printSlowln("...", 750);
 
-				int roll = DiceRoll.roll();
-				System.out.println(p.getName() + " rolled " + roll);
+				int roll1 = 0;
+				int roll2 = 0;
+				int roll = 0;
 
-				p.move(roll);
+				while (roll1 == roll2) {
+					roll1 = roll();
+					roll2 = roll();
+					roll = roll1 + roll2;
+					if (roll1 == roll2)
+						ps.printSlowln(p.getName() + " rolled a Double: " + roll, 50);
+					else
+						ps.printSlowln(p.getName() + " rolled: " + roll, 50);
 
-				// Land on Tile
-				Tile tile = mapManager.getTile(p.position);
-				tile.landOn(p, this);
+					p.move(roll);
 
-				// Bankruptcy Check
-				if (p.money < 0 || p.getNetWorth() <= 0) {
-					p.bankrupt = true;
-					System.out.println(p.getName() + " is bankrupt!");
+					// Land on Tile
+					Tile tile = mapManager.getTile(p.position);
+					tile.landOn(p, this);
+
+					// Bankruptcy Check
+					if (p.money < 0 || p.getNetWorth() <= 0) {
+						p.bankrupt = true;
+						ps.printSlowln(p.getName() + " is bankrupt!");
+					}
+
+					// Status Summary
+					ps.printSlowln("\n-- Status --", 25);
+					for (int j = 0; j < players.length; j++) {
+						Participant x = players[j];
+
+						ps.printSlow(x.getName() + " cash $" + x.money + " net $" + x.getNetWorth(), 25);
+						if (x.bankrupt)
+							ps.printSlowln(" [BANKRUPT]", 25);
+						else
+							System.out.println();
+					}
+					System.out.println();
 				}
-
-				// Status Summary
-				System.out.println("\n-- Status --");
-				for (int j = 0; j < players.length; j++) {
-					Participant x = players[j];
-
-					System.out.println(x.getName() + " cash $" + x.money + " net $" + x.getNetWorth()
-							+ (x.bankrupt ? " [BANKRUPT]" : ""));
-				}
-				System.out.println();
 			}
 
 			// Trade Phase
@@ -211,9 +172,10 @@ public class GameController {
 			// Auto Save
 			try {
 				saveLoad.save(players);
-				System.out.println("Game auto-saved.");
+				ps.printSlowln("Game auto-saved.", 50);
 			} catch (Exception e) {
-				System.out.println("Auto-save failed.");
+				ps.printSlowln("Auto-save failed. Enter a new Save Location: ", 50);
+				saveLoad.setFile(input.next());
 			}
 
 			// Win Check
@@ -231,7 +193,7 @@ public class GameController {
 				gameOver = true;
 
 				if (last != null) {
-					System.out.println(last.getName() + " wins the game!");
+					ps.printSlowln(last.getName() + " Wins the Game!", 150);
 				}
 			}
 		}
@@ -239,15 +201,15 @@ public class GameController {
 
 	// Helper: list buildable properties
 	private void listBuildOptions(Participant p) {
-		System.out.println("\nBuild-eligible properties:");
+		ps.printSlowln("\nBuild-eligible properties:", 25);
 
 		for (int loc = 0; loc < 40; loc++) {
 			Property pr = p.core.getOwnedProperties().searchByLocation(loc);
 
 			if (pr != null && pr.getType().equals("property") && !pr.isMortgaged()
 					&& new BuyingManager().ownsColourSet(p, pr)) {
-				System.out.println(
-						loc + " : " + pr.getName() + "  cost $" + pr.getHouseCost() + "  houses " + pr.getHouseCost());
+				ps.printSlowln(
+						loc + " : " + pr.getName() + "  cost $" + pr.getHouseCost() + "  houses " + pr.getHouseCost(), 30);
 			}
 		}
 	}
@@ -257,24 +219,24 @@ public class GameController {
 		Property prop = p.core.getOwnedProperties().searchByLocation(loc);
 
 		if (prop == null) {
-			System.out.println("You don’t own a property at " + loc);
+			ps.printSlowln("You don’t own a property at " + loc, 50);
 			return;
 		}
 
 		if (prop.isMortgaged()) {
-			System.out.println("Property is mortgaged.");
+			ps.printSlowln("Property is mortgaged.", 50);
 			return;
 		}
 
 		if (!new BuyingManager().ownsColourSet(p, prop)) {
-			System.out.println("You do not own the full set.");
+			ps.printSlowln("You do not own the full set.", 50);
 			return;
 		}
 
 		int cost = prop.getHouseCost();
 
 		if (p.money < cost) {
-			System.out.println("Not enough cash.");
+			ps.printSlowln("Not enough cash.", 50);
 			return;
 		}
 
@@ -282,9 +244,15 @@ public class GameController {
 
 		if (ok) {
 			p.money = p.money - cost;
-			System.out.println("Built on " + prop.getName() + ". New rent $" + prop.getRent());
+			ps.printSlowln("Built on " + prop.getName() + ". New rent $" + prop.getRent(), 50);
 		} else {
-			System.out.println("Cannot build further on that property.");
+			ps.printSlowln("Cannot build further on that property.");
 		}
 	}
+
+	public static int roll() {
+		int d = (int) (Math.random() * 6) + 1;
+		return d;
+	}
+
 }
